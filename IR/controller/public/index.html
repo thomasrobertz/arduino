@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>IR Blaster</title>
+</head>
+<body>
+  <h1>IR Blaster Control</h1>
+  <button onclick="sendCommand()">AVR VOL DOWN</button>
+  <div id="status"></div>
+
+  <script>
+    async function sendCommand() {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = 'Sending...';
+      try {
+        const res = await fetch('/send-avr-vol-down', { method: 'POST' });
+        const text = await res.text();
+        statusDiv.textContent = text;
+      } catch (err) {
+        statusDiv.textContent = 'Error: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
