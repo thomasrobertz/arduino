@@ -9,8 +9,8 @@
 #include "IRTypes.h"     // IR protocol types and IRCode struct
 #include "IRCodes.h"     // IR codes map
 
-const char* ssid = "Vodafone-B5AA"; // Replace with your WiFi SSID
-const char* password = "CJD67cJaGnqbJdub"; // Replace with your WiFi password
+const char* ssid = "***"; // Replace with your WiFi SSID
+const char* password = "***"; // Replace with your WiFi password
 const char* expressServerIP = "192.168.0.89"; // Replace with your Express server's IP
 const int expressServerPort = 3011;
 
