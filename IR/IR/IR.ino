@@ -46,6 +46,7 @@ void setup() {
   Serial.println(WiFi.macAddress());
 
   server.on("/send", HTTP_POST, handleSendCommand);
+  server.on("/test", HTTP_GET, handleTestMode); // Add a test endpoint
   server.begin();
   Serial.println("HTTP server started on port 8077");
   
@@ -75,13 +76,92 @@ void sendIR(const String& name) {
   
   if (name == "AVR_VOL_UP") {
     Serial.println("Using hardcoded values for AVR_VOL_UP");
-    // Try with the address from the debug output
     Serial.println("Sending Denon command with address: 0x14, command: 0x17");
     IrSender.sendKaseikyo_Denon(0x14, 0x17, 0);
     Serial.println("IR command sent successfully");
     return;
   }
 
+  // Special case for AVR_POWER - use the exact signal from the remote
+  if (name == "AVR_POWER") {
+    Serial.println("Using exact signal from remote for AVR_POWER");
+    
+    // Use the Kaseikyo_Denon protocol with the exact values from the remote
+    uint16_t address = 0x514;
+    uint8_t command = 0x0;
+    
+    Serial.println("Sending Kaseikyo_Denon command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendKaseikyo_Denon(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // Special case for AVR_PC
+  if (name == "AVR_PC") {
+    Serial.println("Using hardcoded values for AVR_PC");
+    // Try different combinations
+    Serial.println("Attempt 1: address: 0x140, command: 0xC2");
+    IrSender.sendKaseikyo_Denon(0x140, 0xC2, 0);
+    delay(100);
+    
+    Serial.println("Attempt 2: address: 0x114, command: 0xC2");
+    IrSender.sendKaseikyo_Denon(0x114, 0xC2, 0);
+    
+    Serial.println("IR command attempts completed");
+    return;
+  }
+  
+  // Special case for AVR_PS5
+  if (name == "AVR_PS5") {
+    Serial.println("Using hardcoded values for AVR_PS5");
+    // Try different combinations
+    Serial.println("Attempt 1: address: 0x140, command: 0x3C");
+    IrSender.sendKaseikyo_Denon(0x140, 0x3C, 0);
+    delay(100);
+    
+    Serial.println("Attempt 2: address: 0x114, command: 0x3C");
+    IrSender.sendKaseikyo_Denon(0x114, 0x3C, 0);
+    
+    Serial.println("IR command attempts completed");
+    return;
+  }
+  
+  // Special case for AVR_MUTE
+  if (name == "AVR_MUTE") {
+    Serial.println("Using hardcoded values for AVR_MUTE");
+    // Try different combinations
+    Serial.println("Attempt 1: address: 0x140, command: 0x76");
+    IrSender.sendKaseikyo_Denon(0x140, 0x76, 0);
+    delay(100);
+    
+    Serial.println("Attempt 2: address: 0x114, command: 0x76");
+    IrSender.sendKaseikyo_Denon(0x114, 0x76, 0);
+    
+    Serial.println("IR command attempts completed");
+    return;
+  }
+  
+  // Special case for TV_MUTE
+  if (name == "TV_MUTE") {
+    Serial.println("Using exact signal from remote for TV_MUTE");
+    
+    // Use the NEC protocol with the exact values from the remote
+    uint16_t address = 0x7F00;
+    uint8_t command = 0x50;
+    
+    Serial.println("Sending NEC command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendNEC(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // For other commands, use the general approach
   IRCode code = irCodes[name];
   Serial.println("Found IR code with protocol type: " + String(code.protocolType));
   Serial.println("Data: 0x" + String((uint32_t)(code.data & 0xFFFFFFFF), HEX) + String((uint16_t)(code.data >> 32), HEX));
@@ -224,16 +304,36 @@ void loop() {
   
 }
 
-
-
-
-
-
-
-
-
-
-
+void handleTestMode() {
+  Serial.println("Entering test mode...");
+  Serial.println("Listening for IR signals. Press any IR remote button...");
+  
+  // Send a response to the client
+  server.send(200, "text/plain", "Test mode activated. Check serial monitor for results.");
+  
+  // Listen for IR signals for 30 seconds
+  unsigned long startTime = millis();
+  while (millis() - startTime < 30000) {
+    if (IrReceiver.decode()) {
+      Serial.println("IR signal received:");
+      IrReceiver.printIRResultShort(&Serial);
+      IrReceiver.printIRSendUsage(&Serial);
+      
+      // Extract the protocol, address, and command
+      Serial.println("Protocol: " + String(IrReceiver.decodedIRData.protocol));
+      Serial.println("Address: 0x" + String(IrReceiver.decodedIRData.address, HEX));
+      Serial.println("Command: 0x" + String(IrReceiver.decodedIRData.command, HEX));
+      Serial.println("Raw Data: 0x" + String(IrReceiver.decodedIRData.decodedRawData, HEX));
+      
+      IrReceiver.resume();
+    }
+    
+    // Handle client requests
+    server.handleClient();
+  }
+  
+  Serial.println("Test mode completed.");
+}
 
 
 

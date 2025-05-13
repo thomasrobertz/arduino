@@ -13,7 +13,7 @@ void initializeIRCodes() {
   irCodes["BEAMER_ON"] = IRCode(1, 0x00FDCD32, 32, true, 38);  // address 0xCD32, command 0xFD
   irCodes["BEAMER_OFF"] = IRCode(1, 0x00D1CD32, 32, true, 38); // address 0xCD32, command 0xD1
   
-  // AVR controls
+  // AVR controls - we'll keep these in IRCodes.cpp even though we use hardcoded values in sendIR
   irCodes["AVR_POWER"] = IRCode(2, 0x110051403254, 48, true, 38);
   irCodes["AVR_PC"] = IRCode(2, 0xC2D61403254, 48, true, 38);
   irCodes["AVR_PS5"] = IRCode(2, 0x3C2D51403254, 48, true, 38);
@@ -27,6 +27,7 @@ void initializeIRCodes() {
   irCodes["TV_VOL_UP"] = IRCode(1, 0x00E17F00, 32, true, 38); // address 0x7F00, command 0xE1
   irCodes["TV_VOL_DOWN"] = IRCode(1, 0x00A07F00, 32, true, 38); // address 0x7F00, command 0xA0
 }
+
 
 
 
