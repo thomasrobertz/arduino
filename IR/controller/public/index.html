@@ -2,18 +2,153 @@
 <html>
 <head>
   <title>IR Blaster</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .button-group {
+      margin: 20px 0;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      min-height: 50px;
+    }
+  </style>
 </head>
 <body>
-  <h1>IR Blaster Control</h1>
-  <button onclick="sendCommand()">AVR VOL DOWN</button>
-  <div id="status"></div>
+  <div id="status">Status will appear here...</div>
+  
+  <div class="button-group">
+    <h2>Individual Commands</h2>
+    <button onclick="sendCommand('AVR_VOL_UP')">AVR Volume Up</button>
+    <button onclick="sendCommand('AVR_VOL_DOWN')">AVR Volume Down</button>
+    <button onclick="sendCommand('AVR_MUTE_UNMUTE')">AVR Mute/Unmute</button>
+    <button onclick="sendCommand('AVR_PC')">AVR PC</button>
+    <button onclick="sendCommand('AVR_PS5')">AVR Mute/Unmute</button>
+    <button onclick="sendCommand('TV_ON_OFF')">TV On/Off</button>
+    <button onclick="sendCommand('TV_MUTE')">TV MUTE</button>
+    <button onclick="sendCommand('TV_VOL_UP')">TV VOL UP</button>
+    <button onclick="sendCommand('TV_VOL_DOWN')">TV VOL DOWN</button>
+    <button onclick="sendCommand('SCREEN_UP')">SCREEN UP</button>
+    <button onclick="sendCommand('SCREEN_DOWN')">SCREEN DOWN</button>
+    <button onclick="sendCommand('BEAMER_ON')">BEAMER ON</button>
+    <button onclick="sendCommand('BEAMER_OFF')">BEAMER OFF</button>
+  </div>
+  
+  <div class="button-group">
+    <h2>Command Sequences</h2>
+    <button onclick="sendSequence(['TV_ON_OFF', 'AVR_ON_OFF'])">Turn On TV & AVR</button>
+    <button onclick="sendSequence(['AVR_VOL_DOWN', 'AVR_VOL_DOWN', 'AVR_VOL_DOWN'])">Volume Down x3</button>
+    <button onclick="sendMovieMode()">Movie Mode</button>
+  </div>
+  
+  <div class="button-group">
+    <h2>Repeat Commands</h2>
+    <button onclick="sendCommand('REPEAT:AVR_VOL_DOWN:500:5')">Volume Down x5 (Fast)</button>
+    <button onclick="sendCommand('REPEAT:AVR_VOL_UP:1000:3')">Volume Up x3 (Slow)</button>
+    <button onclick="sendCommand('REPEAT:AVR_VOL_DOWN:300:0')">Volume Down (Infinite)</button>
+    <button onclick="sendStopCommand()">STOP All Commands</button>
+  </div>
 
   <script>
-    async function sendCommand() {
+    async function sendCommand(command) {
       const statusDiv = document.getElementById('status');
-      statusDiv.textContent = 'Sending...';
+      statusDiv.textContent = `Sending command: ${command}...`;
       try {
-        const res = await fetch('/send-avr-vol-down', { method: 'POST' });
+        const res = await fetch('/trigger', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command })
+        });
+        const text = await res.text();
+        statusDiv.textContent = text;
+      } catch (err) {
+        statusDiv.textContent = 'Error: ' + err.message;
+      }
+    }
+    
+    async function sendSequence(commands) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = `Sending sequence: ${commands.join(', ')}...`;
+      
+      for (const command of commands) {
+        try {
+          await fetch('/trigger', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command })
+          });
+          // Add a small wait between commands
+          await fetch('/trigger', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ command: 'WAIT:300' })
+          });
+        } catch (err) {
+          statusDiv.textContent = `Error sending ${command}: ${err.message}`;
+          return;
+        }
+      }
+      
+      statusDiv.textContent = `Sequence completed: ${commands.join(', ')}`;
+    }
+    
+    async function sendMovieMode() {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = "Setting up Movie Mode...";
+      
+      const sequence = [
+        'TV_ON_OFF',
+        'WAIT:2000',
+        'AVR_ON_OFF',
+        'WAIT:5000',
+        'AVR_PS5',
+        'WAIT:1000',
+        'SCREEN_DOWN'
+      ];
+      
+      for (const item of sequence) {
+        try {
+          await fetch('/trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: item })
+          });
+        } catch (err) {
+          statusDiv.textContent = `Error in Movie Mode sequence: ${err.message}`;
+          return;
+        }
+      }
+      
+      statusDiv.textContent = "Movie Mode setup complete!";
+    }
+
+    async function sendStopCommand() {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = "Stopping all commands...";
+      try {
+        const res = await fetch('/stop', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         const text = await res.text();
         statusDiv.textContent = text;
       } catch (err) {
