@@ -64,8 +64,28 @@ void sendIR(const String& name) {
     return;
   }
 
+  // Special case for AVR_VOL_DOWN and AVR_VOL_UP
+  if (name == "AVR_VOL_DOWN") {
+    Serial.println("Using hardcoded values for AVR_VOL_DOWN");
+    Serial.println("Sending Denon command with address: 0x114, command: 0x17");
+    IrSender.sendKaseikyo_Denon(0x114, 0x17, 0);
+    Serial.println("IR command sent successfully");
+    return;
+  }
+  
+  if (name == "AVR_VOL_UP") {
+    Serial.println("Using hardcoded values for AVR_VOL_UP");
+    // Try with the address from the debug output
+    Serial.println("Sending Denon command with address: 0x14, command: 0x17");
+    IrSender.sendKaseikyo_Denon(0x14, 0x17, 0);
+    Serial.println("IR command sent successfully");
+    return;
+  }
+
   IRCode code = irCodes[name];
   Serial.println("Found IR code with protocol type: " + String(code.protocolType));
+  Serial.println("Data: 0x" + String((uint32_t)(code.data & 0xFFFFFFFF), HEX) + String((uint16_t)(code.data >> 32), HEX));
+  Serial.println("nBits: " + String(code.nBits));
   
   // Declare variables outside the switch statement
   uint16_t address;
@@ -86,12 +106,22 @@ void sendIR(const String& name) {
       break;
 
     case IR_PROTO_KASEIKYO_DENON:
-      // Extract address and command from data field
-      address = code.data & 0xFFFF;         // Lower 16 bits
-      command = (code.data >> 16) & 0xFF;   // Next 8 bits
-      
-      Serial.println("Sending Denon command with address: 0x" + String(address, HEX) + 
-                    ", command: 0x" + String(command, HEX));
+      // For 48-bit codes, we need to extract address and command differently
+      if (code.nBits == 48) {
+        // Extract from the raw data format seen in the debug output
+        address = (code.data >> 16) & 0xFFFF;  // Bits 16-31
+        command = (code.data >> 24) & 0xFF;    // Bits 24-31 (overlapping with address)
+        
+        Serial.println("Sending 48-bit Denon command with address: 0x" + String(address, HEX) + 
+                      ", command: 0x" + String(command, HEX));
+      } else {
+        // Standard 32-bit format
+        address = code.data & 0xFFFF;         // Lower 16 bits
+        command = (code.data >> 16) & 0xFF;   // Next 8 bits
+        
+        Serial.println("Sending 32-bit Denon command with address: 0x" + String(address, HEX) + 
+                      ", command: 0x" + String(command, HEX));
+      }
       
       IrSender.sendKaseikyo_Denon(address, command, 0);
       break;
@@ -185,14 +215,18 @@ void loop() {
   server.handleClient();
   
   // Uncomment for debugging IR signals
-  /*
+  
   if (IrReceiver.decode()) {
     Serial.println("IR signal received:");
     IrReceiver.printIRResultShort(&Serial);
     IrReceiver.resume();
   }
-  */
+  
 }
+
+
+
+
 
 
 
