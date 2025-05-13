@@ -9,7 +9,7 @@
 #include <ArduinoJson.h> // For parsing JSON payloads
 
 const char* ssid = "Vodafone-B5AA"; // Replace with your WiFi SSID
-const char* password = "CJD67cJaGnqbJdub"; // Replace with your WiFi password
+const char* password = "***"; // Replace with your WiFi password
 const char* expressServerIP = "192.168.0.89"; // Replace with your Express server's IP
 const int expressServerPort = 3011;
 
