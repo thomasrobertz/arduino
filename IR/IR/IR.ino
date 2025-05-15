@@ -9,8 +9,8 @@
 #include "IRTypes.h"     // IR protocol types and IRCode struct
 #include "IRCodes.h"     // IR codes map
 
-const char* ssid = "Vodafone-B5AA"; // Replace with your WiFi SSID
-const char* password = "CJD67cJaGnqbJdub"; // Replace with your WiFi password
+const char* ssid = "***"; // Replace with your WiFi SSID
+const char* password = "***"; // Replace with your WiFi password
 const char* expressServerIP = "192.168.0.89"; // Replace with your Express server's IP
 const int expressServerPort = 3011;
 
@@ -51,10 +51,10 @@ void setup() {
   Serial.println("HTTP server started on port 8077");
   
   // Print all available IR codes for debugging
-  Serial.println("\nAvailable IR commands:");
+  /*Serial.println("\nAvailable IR commands:");
   for (const auto& pair : irCodes) {
     Serial.println("- " + pair.first);
-  }
+  }*/
 }
 
 void sendIR(const String& name) {
@@ -99,51 +99,6 @@ void sendIR(const String& name) {
     return;
   }
   
-  // Special case for AVR_PC
-  if (name == "AVR_PC") {
-    Serial.println("Using hardcoded values for AVR_PC");
-    // Try different combinations
-    Serial.println("Attempt 1: address: 0x140, command: 0xC2");
-    IrSender.sendKaseikyo_Denon(0x140, 0xC2, 0);
-    delay(100);
-    
-    Serial.println("Attempt 2: address: 0x114, command: 0xC2");
-    IrSender.sendKaseikyo_Denon(0x114, 0xC2, 0);
-    
-    Serial.println("IR command attempts completed");
-    return;
-  }
-  
-  // Special case for AVR_PS5
-  if (name == "AVR_PS5") {
-    Serial.println("Using hardcoded values for AVR_PS5");
-    // Try different combinations
-    Serial.println("Attempt 1: address: 0x140, command: 0x3C");
-    IrSender.sendKaseikyo_Denon(0x140, 0x3C, 0);
-    delay(100);
-    
-    Serial.println("Attempt 2: address: 0x114, command: 0x3C");
-    IrSender.sendKaseikyo_Denon(0x114, 0x3C, 0);
-    
-    Serial.println("IR command attempts completed");
-    return;
-  }
-  
-  // Special case for AVR_MUTE
-  if (name == "AVR_MUTE") {
-    Serial.println("Using hardcoded values for AVR_MUTE");
-    // Try different combinations
-    Serial.println("Attempt 1: address: 0x140, command: 0x76");
-    IrSender.sendKaseikyo_Denon(0x140, 0x76, 0);
-    delay(100);
-    
-    Serial.println("Attempt 2: address: 0x114, command: 0x76");
-    IrSender.sendKaseikyo_Denon(0x114, 0x76, 0);
-    
-    Serial.println("IR command attempts completed");
-    return;
-  }
-  
   // Special case for TV_MUTE
   if (name == "TV_MUTE") {
     Serial.println("Using exact signal from remote for TV_MUTE");
@@ -155,6 +110,152 @@ void sendIR(const String& name) {
     Serial.println("Sending NEC command with address: 0x" + String(address, HEX) + 
                   ", command: 0x" + String(command, HEX));
     
+    IrSender.sendNEC(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // Special case for TV_POWER
+  if (name == "TV_POWER") {
+    Serial.println("Using exact signal from remote for TV_POWER");
+    
+    // Use the NEC protocol with the exact values from the remote
+    // Based on debug output showing: Protocol=NEC Address=0x7F00 Command=0xA
+    uint16_t address = 0x7F00;
+    uint8_t command = 0x0A;  // Command value from debug output
+    
+    Serial.println("Sending NEC command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendNEC(address, command, 0);
+    
+    // Some TVs require multiple signals for power toggle
+    delay(40);  // Similar to the repeat gap seen in debug
+    IrSender.sendNEC(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // Special case for SCREEN_DOWN
+  if (name == "SCREEN_DOWN") {
+    Serial.println("Using multiple transmissions with different frequencies for SCREEN_DOWN");
+    
+    // Try different frequencies
+    uint8_t frequencies[] = {36, 38, 40, 42};
+    
+    for (int freq = 0; freq < 4; freq++) {
+      uint32_t data = 0x6FAAAA;
+      uint8_t nBits = 23;
+      bool isLSBFirst = true;
+      uint8_t khz = frequencies[freq];
+      uint16_t headerMark = 1350, headerSpace = 450;
+      uint16_t oneMark = 450, oneSpace = 1350;
+      uint16_t zeroMark = 500, zeroSpace = 1300;
+      
+      Serial.println("Sending PulseDistance command with " + String(khz) + "kHz frequency");
+      
+      IrSender.sendPulseDistanceWidth(
+        khz,
+        zeroMark, zeroSpace,
+        oneMark, oneSpace,
+        headerMark, headerSpace,
+        data,
+        nBits,
+        isLSBFirst,
+        0, 0);
+      
+      // Longer delay between transmissions
+      delay(1000);
+    }
+    
+    Serial.println("All frequency attempts completed");
+    return;
+  }
+  
+  // Special case for AVR_PC
+  if (name == "AVR_PC") {
+    Serial.println("Using exact signal from remote for AVR_PC");
+    
+    // Try with a different address value
+    uint16_t address = 0x614;  // Modified address based on pattern
+    uint8_t command = 0x2D;    // Command value from test output
+    
+    Serial.println("Sending Kaseikyo_Denon command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendKaseikyo_Denon(address, command, 0);
+    
+    // If the above doesn't work, try sending a second time with slightly different values
+    delay(100);
+    
+    address = 0x414;  // Original address from pattern
+    Serial.println("Sending alternative Kaseikyo_Denon command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendKaseikyo_Denon(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // Special case for AVR_PS5
+  if (name == "AVR_PS5") {
+    Serial.println("Using exact signal from remote for AVR_PS5");
+    
+    // Use the raw data captured from the remote
+    uint64_t rawData = 0x3C2D51403254ULL;  // Use ULL suffix for 64-bit literal
+    
+    // Extract address and command from the raw data
+    uint16_t address = 0x514;  // From test output
+    uint8_t command = 0x2D;    // Command value from test output
+    
+    Serial.println("Sending Kaseikyo_Denon command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendKaseikyo_Denon(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // Special case for BEAMER_ON
+  if (name == "BEAMER_ON") {
+    Serial.println("Using exact signal from remote for BEAMER_ON");
+    
+    // Use the NEC protocol with the values from IRCodes.cpp
+    uint16_t address = 0xCD32;
+    uint8_t command = 0xFD;
+    
+    Serial.println("Sending NEC command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendNEC(address, command, 0);
+    
+    // Some projectors might need a repeat signal
+    delay(40);
+    IrSender.sendNEC(address, command, 0);
+    
+    Serial.println("IR command sent");
+    return;
+  }
+  
+  // Special case for BEAMER_OFF
+  if (name == "BEAMER_OFF") {
+    Serial.println("Using exact signal from remote for BEAMER_OFF");
+    
+    // Use the NEC protocol with the values from IRCodes.cpp
+    uint16_t address = 0xCD32;
+    uint8_t command = 0xD1;
+    
+    Serial.println("Sending NEC command with address: 0x" + String(address, HEX) + 
+                  ", command: 0x" + String(command, HEX));
+    
+    IrSender.sendNEC(address, command, 0);
+    
+    // Some projectors might need a repeat signal
+    delay(40);
     IrSender.sendNEC(address, command, 0);
     
     Serial.println("IR command sent");
@@ -325,6 +426,10 @@ void handleTestMode() {
       Serial.println("Command: 0x" + String(IrReceiver.decodedIRData.command, HEX));
       Serial.println("Raw Data: 0x" + String(IrReceiver.decodedIRData.decodedRawData, HEX));
       
+      // Print the raw timing data
+      Serial.println("Raw timing data:");
+      IrReceiver.printIRResultRawFormatted(&Serial, true);
+      
       IrReceiver.resume();
     }
     
@@ -334,6 +439,25 @@ void handleTestMode() {
   
   Serial.println("Test mode completed.");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

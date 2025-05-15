@@ -5,23 +5,6 @@ import path from 'path';
 import { Command, IRCommand, WaitCommand, RepeatCommand } from './Command';
 import CommandQueue from './CommandQueue';
 
-/* Commands
-AVR_ON_OFF
-AVR_VOL_UP
-AVR_VOL_DOWN
-AVR_MUTE_UNMUTE
-AVR_PC
-AVR_PS5
-TV_ON_OFF
-TV_VOL_UP
-TV_VOL_DOWN
-TV_MUTE_UNMUTE
-SCREEN_UP
-SCREEN_DOWN
-BEAMER_ON
-BEAMER_OFF
-*/
-
 const app = express();
 const port = 3011;
 
