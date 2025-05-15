@@ -245,17 +245,18 @@ void sendIR(const String& name) {
   if (name == "BEAMER_OFF") {
     Serial.println("Using exact signal from remote for BEAMER_OFF");
     
-    // Use the NEC protocol with the values from IRCodes.cpp
-    uint16_t address = 0xCD32;
-    uint8_t command = 0xD1;
+    // Use the NEC protocol with the exact values from the remote
+    // Based on debug output showing: Protocol=NEC Address=0x32 Command=0x2E
+    uint16_t address = 0x32;
+    uint8_t command = 0x2E;
     
     Serial.println("Sending NEC command with address: 0x" + String(address, HEX) + 
                   ", command: 0x" + String(command, HEX));
     
     IrSender.sendNEC(address, command, 0);
     
-    // Some projectors might need a repeat signal
-    delay(40);
+    // Add a repeat signal as seen in the debug output
+    delay(40);  // Similar to the repeat gap seen in debug
     IrSender.sendNEC(address, command, 0);
     
     Serial.println("IR command sent");
@@ -439,6 +440,10 @@ void handleTestMode() {
   
   Serial.println("Test mode completed.");
 }
+
+
+
+
 
 
 
